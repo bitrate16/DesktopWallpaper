@@ -24,7 +24,15 @@
 #include <GL/glu.h>
 #include <GLFW/glfw3.h>
 
+// Show command line
 // #define PRINT_WINDOWS_ENUM
+// Use multiple squares to cover all displays
+// #define USE_MONITOR_SCROLL
+// Draw only on primary display
+// #define USE_PRIMARY_ONLY
+// Allow placing surface on custom screen or full size window
+#define USE_MONITOR_SCROLL
+
 #include "WorkerWEnumerator.h"
 
 // Ling OpenGL
@@ -40,7 +48,14 @@ using WorkerWEnumerator::enumerateForWorkerW;
 // #define DISPLAY_CONSOLE_WINDOW
 #define FRAME_DELAY 33.3
 
+// Used by
+std::vector<RECT> monitors;
+unsigned current_monitor_id = 0;
+bool animation_enabled = 1;
+double animation_pause_timestamp = 0.0;
+
 // Window properties
+HWND workerw;
 HWND gl_window;
 HDC gl_device;
 HGLRC gl_context;
@@ -213,7 +228,7 @@ void renderSC() {
 	glUniform3f(glGetUniformLocation(shaderProgramId, "iResolution"), (float) gl_width, (float) gl_height, 0.0);
 	glUniform1f(glGetUniformLocation(shaderProgramId, "iTime"), (float) glfwGetTime());
 	glUniform1f(glGetUniformLocation(shaderProgramId, "iTimeDelta"), (float) (glfwGetTime() - timestamp));
-	timestamp = glfwGetTime();
+	timestamp = (float) glfwGetTime();
 	glUniform1i(glGetUniformLocation(shaderProgramId, "iFrame"), ++framestamp);
 
 	glUseProgram(shaderProgramId);
@@ -224,6 +239,16 @@ void renderSC() {
 
 	glFlush();
 	SwapBuffers(gl_device);
+}
+
+// Enumerate all monitors & store their size into monitors vector
+BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
+	MONITORINFO info;
+	info.cbSize = sizeof(info);
+	if (GetMonitorInfo(hMonitor, &info))
+		monitors.push_back(info.rcMonitor);
+
+	return TRUE;
 }
 
 // Tray event dispatcher
@@ -242,6 +267,17 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					// InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_EXIT, _T("Exit"));
 
+#ifdef USE_MONITOR_SCROLL
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETONEXTMONITOR, _T("Move to next monitor"));
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETOPREVMONITOR, _T("Move to prev monitor"));
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_FULLSCREEN, _T("Fullscreen"));
+
+					if (animation_enabled)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_ANIMATED, _T("Animation disable"));
+					else
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_ANIMATED, _T("Animation enable"));
+#endif
+
 					SetForegroundWindow(hWnd);
 					TrackPopupMenu(trayPopMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_BOTTOMALIGN, lpClickPoint.x, lpClickPoint.y, 0, hWnd, NULL);
 					return TRUE;
@@ -259,6 +295,61 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					DestroyWindow(hWnd);
 					DestroyWindow(gl_window);
 					break;
+
+				case ID_SYSTRAYMENU_MOVETOPREVMONITOR: {
+					EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
+
+					if (current_monitor_id > 0)
+						--current_monitor_id;
+
+					if (current_monitor_id < 0)
+						current_monitor_id = 0;
+					RECT windowsize = monitors[current_monitor_id];
+
+					if (!animation_enabled)
+						glfwSetTime(animation_pause_timestamp);
+
+					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
+					break;
+				}
+
+				case ID_SYSTRAYMENU_MOVETONEXTMONITOR: {
+					EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
+
+					if (current_monitor_id < monitors.size() - 1)
+						++current_monitor_id;
+
+					if (current_monitor_id >= monitors.size())
+						current_monitor_id = monitors.size() - 1;
+					RECT windowsize = monitors[current_monitor_id];
+
+					if (!animation_enabled)
+						glfwSetTime(animation_pause_timestamp);
+
+					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
+					break;
+				}
+
+				case ID_SYSTRAYMENU_FULLSCREEN: {
+					RECT windowsize;
+					GetWindowRect(workerw, &windowsize);
+
+					if (!animation_enabled)
+						glfwSetTime(animation_pause_timestamp);
+
+					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
+					break;
+				}
+
+				case ID_SYSTRAYMENU_ANIMATED:
+					animation_enabled = !animation_enabled;
+
+					if (!animation_enabled)
+						animation_pause_timestamp = glfwGetTime();
+					else
+						glfwSetTime(animation_pause_timestamp);
+					break;
+
 				default:
 					return DefWindowProc(hWnd, wmId, wParam, lParam);
 			}
@@ -354,7 +445,7 @@ HWND CreateOpenGLWindow(LPWSTR title, int x, int y, int width, int height, BYTE 
 			return NULL;
 		}
 	}
-
+	
 	// Create window for OpenGL
 	gl_window = CreateWindow(L"OpenGL", title, WS_OVERLAPPEDWINDOW |
 		WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
@@ -549,21 +640,31 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 
 	MyRegisterTrayClass(hInstance);
 
-	if (!InitTrayInstance(hInstance, nCmdShow)) {
+	if (!InitTrayInstance(hInstance, nCmdShow)) 
 		return FALSE;
-	}
 
 	// Get WorkerW layer
-	HWND workerw = enumerateForWorkerW();
+	workerw = enumerateForWorkerW();
 
 	if (workerw == NULL) {
 		std::wcerr << "WorkerW enumeration fail" << std::endl;
 		exit(1);
 	}
 
-	// Get size of WorkerW. Entire desktop background
+	// Get desired screen size
 	RECT windowsize;
+#ifdef USE_PRIMARY_ONLY
+	EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
+
+	windowsize = monitors[0];
+#elif defined USE_MONITOR_SCROLL
+	EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
+
+	windowsize = monitors[0];
+#else
+	// Get size of WorkerW. Entire desktop background
 	GetWindowRect(workerw, &windowsize);
+#endif
 
 	// Create WIndows & OpenGL context
 	CreateOpenGLWindow((LPWSTR) L"minimal", windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, PFD_TYPE_RGBA, 0);
@@ -587,37 +688,46 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 
 	// Main repaint loop, limited by FPS
 	while (1) {
-		a = std::chrono::system_clock::now();
-		std::chrono::duration<double, std::milli> work_time = a - b;
+		if (animation_enabled) {
+			a = std::chrono::system_clock::now();
+			std::chrono::duration<double, std::milli> work_time = a - b;
 
-		while (PeekMessage(&msg1, tray_window, 0, 0, PM_NOREMOVE)) {
-			if (GetMessage(&msg1, tray_window, 0, 0)) {
+			while (PeekMessage(&msg1, tray_window, 0, 0, PM_NOREMOVE)) {
+				if (GetMessage(&msg1, tray_window, 0, 0)) {
+					TranslateMessage(&msg1);
+					DispatchMessage(&msg1);
+				} else
+					goto quit;
+			}
+
+			while (PeekMessage(&msg2, gl_window, 0, 0, PM_NOREMOVE)) {
+				if (GetMessage(&msg2, gl_window, 0, 0)) {
+					TranslateMessage(&msg2);
+					DispatchMessage(&msg2);
+				} else
+					goto quit;
+			}
+
+			if (msg1.message == WM_QUIT || msg2.message == WM_QUIT)
+				goto quit;
+
+			renderSC();
+
+			if (work_time.count() < FRAME_DELAY) {
+				std::chrono::duration<double, std::milli> delta_ms(FRAME_DELAY - work_time.count());
+				auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
+				std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
+			}
+
+			b = std::chrono::system_clock::now();
+		} else {
+			// Block till message received
+			if (GetMessage(&msg1, NULL, 0, 0)) {
 				TranslateMessage(&msg1);
 				DispatchMessage(&msg1);
 			} else
 				goto quit;
 		}
-
-		while (PeekMessage(&msg2, gl_window, 0, 0, PM_NOREMOVE)) {
-			if (GetMessage(&msg2, gl_window, 0, 0)) {
-				TranslateMessage(&msg2);
-				DispatchMessage(&msg2);
-			} else
-				goto quit;
-		}
-
-		if (msg1.message == WM_QUIT || msg2.message == WM_QUIT)
-			goto quit;
-
-		renderSC();
-
-		if (work_time.count() < FRAME_DELAY) {
-			std::chrono::duration<double, std::milli> delta_ms(FRAME_DELAY - work_time.count());
-			auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
-			std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
-		}
-
-		b = std::chrono::system_clock::now();
 	}
 
 quit:
