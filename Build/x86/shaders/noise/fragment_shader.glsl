@@ -4,6 +4,7 @@ uniform float iTime;
 uniform float iTimeDelta;
 uniform int   iFrame;
 uniform vec3  iResolution;
+uniform vec3  iMouse;
 #define fragCoord gl_FragCoord.xy
 
 out vec4 fragColor;

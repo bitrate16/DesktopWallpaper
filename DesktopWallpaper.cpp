@@ -56,10 +56,16 @@ using WorkerWEnumerator::enumerateForWorkerW;
 
 // Used by
 std::vector<RECT> monitors;
+RECT corrent_monitor_rect = { 0, 0 };
 unsigned current_monitor_id = 0;
 bool animation_enabled = 1;
 double animation_pause_timestamp = 0.0;
 
+// Hold mouse location
+bool  track_mouse = 1;
+POINT track_mouse_location = { 0, 0 };
+
+// Current FPS setting
 float fps_delay = FRAME_DELAY_30FPS;
 int use_fps = 4;
 
@@ -246,6 +252,17 @@ void renderSC() {
 		timestamp = (float)glfwGetTime();
 		glUniform1i(glGetUniformLocation(shaderProgramId, "iFrame"), ++framestamp);
 
+		if (track_mouse) {
+			if (!GetCursorPos(&track_mouse_location))
+				track_mouse_location = { 0, 0 };
+
+			track_mouse_location.y = corrent_monitor_rect.bottom + corrent_monitor_rect.top - track_mouse_location.y;
+
+			glUniform3f(glGetUniformLocation(shaderProgramId, "iMouse"), track_mouse_location.x, track_mouse_location.y, 1.0);
+		} else
+			glUniform3f(glGetUniformLocation(shaderProgramId, "iMouse"), track_mouse_location.x, track_mouse_location.y, 0.0);
+
+
 		glUseProgram(shaderProgramId);
 		glBindVertexArray(VAO);
 		//glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -286,6 +303,7 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETONEXTMONITOR, _T("Move to next monitor"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETOPREVMONITOR, _T("Move to prev monitor"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_FULLSCREEN, _T("Fullscreen"));
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
 #endif
 					if (use_fps == 6)
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 1 FPS"));
@@ -322,9 +340,18 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					else
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_ANIMATED, _T("Resume"));
 
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
+
+					if (track_mouse)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOUSE, _T("Disable mouse"));
+					else
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOUSE, _T("Enable mouse"));
 
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RELOADSHADER, _T("Reload shader"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RESETTIME, _T("Reset time"));
+
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
+
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_EXIT, _T("Exit"));
 
 					SetForegroundWindow(hWnd);
@@ -359,6 +386,7 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						glfwSetTime(animation_pause_timestamp);
 
 					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
+					corrent_monitor_rect = windowsize;
 					break;
 				}
 
@@ -376,6 +404,7 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						glfwSetTime(animation_pause_timestamp);
 
 					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
+					corrent_monitor_rect = windowsize;
 					break;
 				}
 
@@ -387,6 +416,7 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						glfwSetTime(animation_pause_timestamp);
 
 					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
+					corrent_monitor_rect = windowsize;
 					break;
 				}
 
@@ -444,6 +474,10 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 					// Call repaint
 					renderSC();
+					break;
+
+				case ID_SYSTRAYMENU_MOUSE:
+					track_mouse = !track_mouse;
 					break;
 
 				default:
@@ -761,6 +795,9 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 	// Get size of WorkerW. Entire desktop background
 	GetWindowRect(workerw, &windowsize);
 #endif
+
+	// Store rectangle to invert Y in mouse input
+	corrent_monitor_rect = windowsize;
 
 	// Create WIndows & OpenGL context
 	CreateOpenGLWindow((LPWSTR) L"minimal", windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, PFD_TYPE_RGBA, 0);
