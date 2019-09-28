@@ -1,8 +1,7 @@
 ﻿
-#include "stdafx.h"
-
 #include "resource.h"
 
+#include <SDKDDKVer.h>
 #include <windows.h>
 #include <shellapi.h>
 #include <WinUser.h>
