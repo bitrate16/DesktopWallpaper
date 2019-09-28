@@ -324,6 +324,7 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RELOADSHADER, _T("Reload shader"));
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RESETTIME, _T("Reset time"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_EXIT, _T("Exit"));
 
 					SetForegroundWindow(hWnd);
@@ -432,6 +433,17 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					else if (use_fps == 4) fps_delay = FRAME_DELAY_30FPS;
 					else if (use_fps == 5) fps_delay = FRAME_DELAY_60FPS;
 					else if (use_fps == 6) fps_delay = FRAME_DELAY_120FPS;
+					break;
+
+				case ID_SYSTRAYMENU_RESETTIME:
+					timestamp = 0.0;
+					if (!animation_enabled)
+						animation_pause_timestamp = 0.0;
+					else
+						glfwSetTime(0.0);
+
+					// Call repaint
+					renderSC();
 					break;
 
 				default:
