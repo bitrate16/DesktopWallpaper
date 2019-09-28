@@ -46,15 +46,22 @@ using WorkerWEnumerator::enumerateForWorkerW;
 
 // Appication properties
 // #define DISPLAY_CONSOLE_WINDOW
-#define FRAME_DELAY_30FPS 33.3
-#define FRAME_DELAY_60FPS 16.6
+#define FRAME_DELAY_1FPS   1000.0
+#define FRAME_DELAY_5FPS   200.0
+#define FRAME_DELAY_10FPS  100.0
+#define FRAME_DELAY_15FPS  66.6
+#define FRAME_DELAY_30FPS  33.3
+#define FRAME_DELAY_60FPS  16.6
+#define FRAME_DELAY_120FPS 8.3
 
 // Used by
 std::vector<RECT> monitors;
 unsigned current_monitor_id = 0;
 bool animation_enabled = 1;
 double animation_pause_timestamp = 0.0;
-bool use_60_pfs = 0;
+
+float fps_delay = FRAME_DELAY_30FPS;
+int use_fps = 4;
 
 // Window properties
 HWND workerw;
@@ -285,10 +292,35 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					else
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_ANIMATED, _T("Animation enable"));
 #endif
-					if (use_60_pfs)
+					if (use_fps == 6)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 1 FPS"));
+					else if (use_fps == 0)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 5 FPS"));
+					else if (use_fps == 1)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 10 FPS"));
+					else if (use_fps == 2)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 15 FPS"));
+					else if (use_fps == 3)
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 30 FPS"));
-					else
+					else if (use_fps == 4)
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 60 FPS"));
+					else if (use_fps == 5)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 120 FPS"));
+
+					if (use_fps == 1)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPSLOW, _T("Use 1 FPS"));
+					else if (use_fps == 2)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPSLOW, _T("Use 5 FPS"));
+					else if (use_fps == 3)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPSLOW, _T("Use 10 FPS"));
+					else if (use_fps == 4)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPSLOW, _T("Use 15 FPS"));
+					else if (use_fps == 5)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPSLOW, _T("Use 30 FPS"));
+					else if (use_fps == 6)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPSLOW, _T("Use 60 FPS"));
+					else if (use_fps == 0)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPSLOW, _T("Use 120 FPS"));
 
 
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RELOADSHADER, _T("Reload shader"));
@@ -375,7 +407,31 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				}
 
 				case ID_SYSTRAYMENU_USEFPS:
-					use_60_pfs = !use_60_pfs;
+					++use_fps;
+					if (use_fps > 6)
+						use_fps = 0;
+					
+					     if (use_fps == 0) fps_delay = FRAME_DELAY_1FPS;
+					else if (use_fps == 1) fps_delay = FRAME_DELAY_5FPS;
+					else if (use_fps == 2) fps_delay = FRAME_DELAY_10FPS;
+					else if (use_fps == 3) fps_delay = FRAME_DELAY_15FPS;
+					else if (use_fps == 4) fps_delay = FRAME_DELAY_30FPS;
+					else if (use_fps == 5) fps_delay = FRAME_DELAY_60FPS;
+					else if (use_fps == 6) fps_delay = FRAME_DELAY_120FPS;
+					break;
+
+				case ID_SYSTRAYMENU_USEFPSLOW:
+					--use_fps;
+					if (use_fps < 0)
+						use_fps = 6;
+
+					     if (use_fps == 0) fps_delay = FRAME_DELAY_1FPS;
+					else if (use_fps == 1) fps_delay = FRAME_DELAY_5FPS;
+					else if (use_fps == 2) fps_delay = FRAME_DELAY_10FPS;
+					else if (use_fps == 3) fps_delay = FRAME_DELAY_15FPS;
+					else if (use_fps == 4) fps_delay = FRAME_DELAY_30FPS;
+					else if (use_fps == 5) fps_delay = FRAME_DELAY_60FPS;
+					else if (use_fps == 6) fps_delay = FRAME_DELAY_120FPS;
 					break;
 
 				default:
@@ -732,18 +788,10 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 
 			renderSC();
 
-			if (use_60_pfs) {
-				if (work_time.count() < FRAME_DELAY_60FPS) {
-					std::chrono::duration<double, std::milli> delta_ms(FRAME_DELAY_60FPS - work_time.count());
-					auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
-					std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
-				}
-			} else {
-				if (work_time.count() < FRAME_DELAY_30FPS) {
-					std::chrono::duration<double, std::milli> delta_ms(FRAME_DELAY_30FPS - work_time.count());
-					auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
-					std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
-				}
+			if (work_time.count() < fps_delay) {
+				std::chrono::duration<double, std::milli> delta_ms(fps_delay - work_time.count());
+				auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
+				std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
 			}
 
 			b = std::chrono::system_clock::now();
