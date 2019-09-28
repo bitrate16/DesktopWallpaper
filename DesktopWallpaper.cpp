@@ -210,7 +210,9 @@ void initSC() {
 }
 
 // Called on app exit
-void destroySC() {};
+void destroySC() {
+	glDeleteProgram(shaderProgramId);
+};
 
 // Callback for resize event for OpenGL
 void resizeSC(int width, int height) {
@@ -222,23 +224,25 @@ void resizeSC(int width, int height) {
 
 // Callback for rendering a surface
 void renderSC() {
-	glClearColor(0, 0, 0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
+	if (shaderProgramId != -1) {
+		glClearColor(0, 0, 0, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT);
 	
-	glUniform3f(glGetUniformLocation(shaderProgramId, "iResolution"), (float) gl_width, (float) gl_height, 0.0);
-	glUniform1f(glGetUniformLocation(shaderProgramId, "iTime"), (float) glfwGetTime());
-	glUniform1f(glGetUniformLocation(shaderProgramId, "iTimeDelta"), (float) (glfwGetTime() - timestamp));
-	timestamp = (float) glfwGetTime();
-	glUniform1i(glGetUniformLocation(shaderProgramId, "iFrame"), ++framestamp);
+		glUniform3f(glGetUniformLocation(shaderProgramId, "iResolution"), (float)gl_width, (float)gl_height, 0.0);
+		glUniform1f(glGetUniformLocation(shaderProgramId, "iTime"), (float)glfwGetTime());
+		glUniform1f(glGetUniformLocation(shaderProgramId, "iTimeDelta"), (float)(glfwGetTime() - timestamp));
+		timestamp = (float)glfwGetTime();
+		glUniform1i(glGetUniformLocation(shaderProgramId, "iFrame"), ++framestamp);
 
-	glUseProgram(shaderProgramId);
-	glBindVertexArray(VAO);
-	//glDrawArrays(GL_TRIANGLES, 0, 6);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
+		glUseProgram(shaderProgramId);
+		glBindVertexArray(VAO);
+		//glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
 
-	glFlush();
-	SwapBuffers(gl_device);
+		glFlush();
+		SwapBuffers(gl_device);
+	}
 }
 
 // Enumerate all monitors & store their size into monitors vector
@@ -265,7 +269,6 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					trayPopMenu = CreatePopupMenu();
 
 					// InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
-					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_EXIT, _T("Exit"));
 
 #ifdef USE_MONITOR_SCROLL
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETONEXTMONITOR, _T("Move to next monitor"));
@@ -277,6 +280,9 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					else
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_ANIMATED, _T("Animation enable"));
 #endif
+
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RELOADSHADER, _T("Reload shader"));
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_EXIT, _T("Exit"));
 
 					SetForegroundWindow(hWnd);
 					TrackPopupMenu(trayPopMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_BOTTOMALIGN, lpClickPoint.x, lpClickPoint.y, 0, hWnd, NULL);
@@ -349,6 +355,14 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					else
 						glfwSetTime(animation_pause_timestamp);
 					break;
+
+				case ID_SYSTRAYMENU_RELOADSHADER: {
+					GLint temp = shaderProgramId;
+					shaderProgramId = -1;
+					glDeleteProgram(shaderProgramId);
+					shaderProgramId = LoadShaders("vertex_shader.glsl", "fragment_shader.glsl");
+					break;
+				}
 
 				default:
 					return DefWindowProc(hWnd, wmId, wParam, lParam);
