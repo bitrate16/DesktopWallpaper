@@ -17,10 +17,11 @@ uniform vec3 iResolution;
 out vec4 fragColor;
 ```
 
+_Entry point should be replaced_
 ```
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 ```
-_Should be replaced with_
+_With_
 ```
 void main()
 ```
