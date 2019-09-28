@@ -3,7 +3,7 @@ Build/x86 - ready application
 ./ - source code
 ```
 
-Can run any shader from [shadertoy.com](shadertoy.com)
+Can run any shader from [shadertoy.com](https://shadertoy.com)
 ------------------------------------
 
 _Code should be inserted into shader beginning_
