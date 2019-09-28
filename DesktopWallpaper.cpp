@@ -46,13 +46,15 @@ using WorkerWEnumerator::enumerateForWorkerW;
 
 // Appication properties
 // #define DISPLAY_CONSOLE_WINDOW
-#define FRAME_DELAY 33.3
+#define FRAME_DELAY_30FPS 33.3
+#define FRAME_DELAY_60FPS 16.6
 
 // Used by
 std::vector<RECT> monitors;
 unsigned current_monitor_id = 0;
 bool animation_enabled = 1;
 double animation_pause_timestamp = 0.0;
+bool use_60_pfs = 0;
 
 // Window properties
 HWND workerw;
@@ -227,6 +229,9 @@ void renderSC() {
 	if (shaderProgramId != -1) {
 		glClearColor(0, 0, 0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+		if (!animation_enabled)
+			glfwSetTime(animation_pause_timestamp);
 	
 		glUniform3f(glGetUniformLocation(shaderProgramId, "iResolution"), (float)gl_width, (float)gl_height, 0.0);
 		glUniform1f(glGetUniformLocation(shaderProgramId, "iTime"), (float)glfwGetTime());
@@ -280,6 +285,11 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					else
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_ANIMATED, _T("Animation enable"));
 #endif
+					if (use_60_pfs)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 30 FPS"));
+					else
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 60 FPS"));
+
 
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RELOADSHADER, _T("Reload shader"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_EXIT, _T("Exit"));
@@ -363,6 +373,10 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					shaderProgramId = LoadShaders("vertex_shader.glsl", "fragment_shader.glsl");
 					break;
 				}
+
+				case ID_SYSTRAYMENU_USEFPS:
+					use_60_pfs = !use_60_pfs;
+					break;
 
 				default:
 					return DefWindowProc(hWnd, wmId, wParam, lParam);
@@ -718,10 +732,18 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 
 			renderSC();
 
-			if (work_time.count() < FRAME_DELAY) {
-				std::chrono::duration<double, std::milli> delta_ms(FRAME_DELAY - work_time.count());
-				auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
-				std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
+			if (use_60_pfs) {
+				if (work_time.count() < FRAME_DELAY_60FPS) {
+					std::chrono::duration<double, std::milli> delta_ms(FRAME_DELAY_60FPS - work_time.count());
+					auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
+					std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
+				}
+			} else {
+				if (work_time.count() < FRAME_DELAY_30FPS) {
+					std::chrono::duration<double, std::milli> delta_ms(FRAME_DELAY_30FPS - work_time.count());
+					auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
+					std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
+				}
 			}
 
 			b = std::chrono::system_clock::now();

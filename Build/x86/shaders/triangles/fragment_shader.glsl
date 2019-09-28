@@ -1,7 +1,9 @@
 #version 330 core
 
 uniform float iTime;
-uniform vec3 iResolution;
+uniform float iTimeDelta;
+uniform int   iFrame;
+uniform vec3  iResolution;
 #define fragCoord gl_FragCoord.xy
 
 out vec4 fragColor;

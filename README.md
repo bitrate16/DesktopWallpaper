@@ -3,7 +3,7 @@ Build/x86 - ready application
 ./ - source code
 ```
 
-Can run any shader from shaderty.com
+Can run any shader from [shadertoy.com](shadertoy.com)
 ------------------------------------
 
 _Code should be inserted into shader beginning_
@@ -11,7 +11,9 @@ _Code should be inserted into shader beginning_
 #version 330 core
 
 uniform float iTime;
-uniform vec3 iResolution;
+uniform float iTimeDelta;
+uniform int   iFrame;
+uniform vec3  iResolution;
 #define fragCoord gl_FragCoord.xy
 
 out vec4 fragColor;
