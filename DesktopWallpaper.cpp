@@ -25,6 +25,7 @@
 #include <GLFW/glfw3.h>
 
 // Show command line
+// #define DISPLAY_CONSOLE_WINDOW
 // #define PRINT_WINDOWS_ENUM
 // Use multiple squares to cover all displays
 // #define USE_MONITOR_SCROLL
@@ -683,8 +684,7 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 	std::chrono::system_clock::time_point a = std::chrono::system_clock::now();
 	std::chrono::system_clock::time_point b = std::chrono::system_clock::now();
 
-	MSG msg1;
-	MSG msg2;
+	MSG msg;
 
 	// Main repaint loop, limited by FPS
 	while (1) {
@@ -692,23 +692,15 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 			a = std::chrono::system_clock::now();
 			std::chrono::duration<double, std::milli> work_time = a - b;
 
-			while (PeekMessage(&msg1, tray_window, 0, 0, PM_NOREMOVE)) {
-				if (GetMessage(&msg1, tray_window, 0, 0)) {
-					TranslateMessage(&msg1);
-					DispatchMessage(&msg1);
+			while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)) {
+				if (GetMessage(&msg, NULL, 0, 0)) {
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
 				} else
 					goto quit;
 			}
 
-			while (PeekMessage(&msg2, gl_window, 0, 0, PM_NOREMOVE)) {
-				if (GetMessage(&msg2, gl_window, 0, 0)) {
-					TranslateMessage(&msg2);
-					DispatchMessage(&msg2);
-				} else
-					goto quit;
-			}
-
-			if (msg1.message == WM_QUIT || msg2.message == WM_QUIT)
+			if (msg.message == WM_QUIT)
 				goto quit;
 
 			renderSC();
@@ -722,9 +714,9 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 			b = std::chrono::system_clock::now();
 		} else {
 			// Block till message received
-			if (GetMessage(&msg1, NULL, 0, 0)) {
-				TranslateMessage(&msg1);
-				DispatchMessage(&msg1);
+			if (GetMessage(&msg, NULL, 0, 0)) {
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
 			} else
 				goto quit;
 		}
@@ -740,5 +732,5 @@ quit:
 	if (hPalette)
 		DeleteObject(hPalette);
 
-	return msg2.wParam;
+	return msg.wParam;
 };
