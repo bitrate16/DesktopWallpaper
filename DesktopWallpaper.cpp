@@ -69,6 +69,9 @@ POINT track_mouse_location = { 0, 0 };
 float fps_delay = FRAME_DELAY_30FPS;
 int use_fps = 4;
 
+// Show window with shader compile warnings
+bool show_glsl_warnings = 0;
+
 // Window properties
 HWND workerw;
 HWND gl_window;
@@ -174,7 +177,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	// Checking vertex shader
 	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if (InfoLogLength > 0) {
+	if (InfoLogLength > 0 && (show_glsl_warnings || Result == GL_FALSE)) {
 		std::wcout.clear();
 		AllocConsole();
 		SetConsoleTitle(L"GLSL Error output");
@@ -188,7 +191,8 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		ShowWindow(GetConsoleWindow(), SW_HIDE);
 		FreeConsole();
 
-		return -1;
+		if (Result == GL_FALSE)
+			return -1;
 	}
 
 	// Compiling fragment shader
@@ -200,7 +204,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	// Checking fragment shader
 	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if (InfoLogLength > 0) {
+	if (InfoLogLength > 0 && (show_glsl_warnings || Result == GL_FALSE)) {
 		std::wcout.clear();
 		AllocConsole();
 		SetConsoleTitle(L"GLSL Error output");
@@ -214,7 +218,8 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		ShowWindow(GetConsoleWindow(), SW_HIDE);
 		FreeConsole();
 
-		return -1;
+		if (Result == GL_FALSE)
+			return -1;
 	}
 
 	// Creating shader program & attaching shaders to it
@@ -227,7 +232,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	// Checking shader program
 	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
 	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if (InfoLogLength > 0) {
+	if (InfoLogLength > 0 && (show_glsl_warnings || Result == GL_FALSE)) {
 		std::wcout.clear();
 		AllocConsole();
 		SetConsoleTitle(L"GLSL Error output");
@@ -241,7 +246,8 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		ShowWindow(GetConsoleWindow(), SW_HIDE);
 		FreeConsole();
 
-		return -1;
+		if (Result == GL_FALSE)
+			return -1;
 	}
 
 	glDeleteShader(VertexShaderID);
@@ -360,7 +366,8 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETONEXTMONITOR, _T("Move to next monitor"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETOPREVMONITOR, _T("Move to prev monitor"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_FULLSCREEN, _T("Fullscreen"));
-					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
+
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP")); // SEP
 #endif
 					if (use_fps == 6)
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_USEFPS, _T("Use 1 FPS"));
@@ -397,12 +404,19 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					else
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_ANIMATED, _T("Resume"));
 
-					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP")); // SEP
 
 					if (track_mouse)
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOUSE, _T("Disable mouse"));
 					else
 						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOUSE, _T("Enable mouse"));
+
+					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP")); // SEP
+
+					if (show_glsl_warnings)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_SHOWWARNINGS, _T("Hide GLSL warnings"));
+					else
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_SHOWWARNINGS, _T("Show GLSL warnings"));
 
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RELOADSHADER, _T("Reload shader"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_RESETTIME, _T("Reset time"));
@@ -535,6 +549,10 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 				case ID_SYSTRAYMENU_MOUSE:
 					track_mouse = !track_mouse;
+					break;
+
+				case ID_SYSTRAYMENU_SHOWWARNINGS:
+					show_glsl_warnings = !show_glsl_warnings;
 					break;
 
 				default:
