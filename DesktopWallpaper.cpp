@@ -124,8 +124,20 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		sstr << VertexShaderStream.rdbuf();
 		VertexShaderCode = sstr.str();
 		VertexShaderStream.close();
-	} else
+	} else {
+		std::wcout.clear();
+		AllocConsole();
+		SetConsoleTitle(L"GLSL Error output");
+		freopen("CONOUT$", "w", stdout);
+		
 		std::wcout << vertex_file_path << " open failed" << std::endl;
+		
+		system("PAUSE");
+		ShowWindow(GetConsoleWindow(), SW_HIDE);
+		FreeConsole();
+
+		return -1;
+	}
 
 	// Loading fragment shader from file
 	std::string FragmentShaderCode;
@@ -135,8 +147,20 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		sstr << FragmentShaderStream.rdbuf();
 		FragmentShaderCode = sstr.str();
 		FragmentShaderStream.close();
-	} else
+	} else {
+		std::wcout.clear();
+		AllocConsole();
+		SetConsoleTitle(L"GLSL Error output");
+		freopen("CONOUT$", "w", stdout);
+		
 		std::wcout << fragment_file_path << " open failed" << std::endl;
+		
+		system("PAUSE");
+		ShowWindow(GetConsoleWindow(), SW_HIDE);
+		FreeConsole();
+
+		return -1;
+	}
 
 	GLint Result = GL_FALSE;
 	int InfoLogLength;
@@ -151,9 +175,20 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if (InfoLogLength > 0) {
+		std::wcout.clear();
+		AllocConsole();
+		SetConsoleTitle(L"GLSL Error output");
+		freopen("CONOUT$", "w", stdout);
+
 		std::vector<char> VertexShaderErrorMessage(InfoLogLength + 1);
 		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
 		std::wcout << &VertexShaderErrorMessage[0] << std::endl;
+
+		system("PAUSE");
+		ShowWindow(GetConsoleWindow(), SW_HIDE);
+		FreeConsole();
+
+		return -1;
 	}
 
 	// Compiling fragment shader
@@ -166,9 +201,20 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if (InfoLogLength > 0) {
+		std::wcout.clear();
+		AllocConsole();
+		SetConsoleTitle(L"GLSL Error output");
+		freopen("CONOUT$", "w", stdout);
+
 		std::vector<char> FragmentShaderErrorMessage(InfoLogLength + 1);
 		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
 		std::wcout << &FragmentShaderErrorMessage[0] << std::endl;
+
+		system("PAUSE");
+		ShowWindow(GetConsoleWindow(), SW_HIDE);
+		FreeConsole();
+
+		return -1;
 	}
 
 	// Creating shader program & attaching shaders to it
@@ -182,9 +228,20 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
 	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if (InfoLogLength > 0) {
+		std::wcout.clear();
+		AllocConsole();
+		SetConsoleTitle(L"GLSL Error output");
+		freopen("CONOUT$", "w", stdout);
+
 		std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
 		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
 		std::wcout << &ProgramErrorMessage[0] << std::endl;
+
+		system("PAUSE");
+		ShowWindow(GetConsoleWindow(), SW_HIDE);
+		FreeConsole();
+
+		return -1;
 	}
 
 	glDeleteShader(VertexShaderID);
