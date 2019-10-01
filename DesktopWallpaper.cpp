@@ -131,6 +131,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		std::wcout.clear();
 		AllocConsole();
 		SetConsoleTitle(L"GLSL Error output");
+		SetConsoleCtrlHandler(NULL, TRUE);
 		freopen("CONOUT$", "w", stdout);
 		
 		std::wcout << vertex_file_path << " open failed" << std::endl;
@@ -154,6 +155,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		std::wcout.clear();
 		AllocConsole();
 		SetConsoleTitle(L"GLSL Error output");
+		SetConsoleCtrlHandler(NULL, TRUE);
 		freopen("CONOUT$", "w", stdout);
 		
 		std::wcout << fragment_file_path << " open failed" << std::endl;
@@ -181,6 +183,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		std::wcout.clear();
 		AllocConsole();
 		SetConsoleTitle(L"GLSL Error output");
+		SetConsoleCtrlHandler(NULL, TRUE);
 		freopen("CONOUT$", "w", stdout);
 
 		std::vector<char> VertexShaderErrorMessage(InfoLogLength + 1);
@@ -208,6 +211,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		std::wcout.clear();
 		AllocConsole();
 		SetConsoleTitle(L"GLSL Error output");
+		SetConsoleCtrlHandler(NULL, TRUE);
 		freopen("CONOUT$", "w", stdout);
 
 		std::vector<char> FragmentShaderErrorMessage(InfoLogLength + 1);
@@ -236,6 +240,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 		std::wcout.clear();
 		AllocConsole();
 		SetConsoleTitle(L"GLSL Error output");
+		SetConsoleCtrlHandler(NULL, TRUE);
 		freopen("CONOUT$", "w", stdout);
 
 		std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
@@ -315,7 +320,7 @@ void renderSC() {
 		timestamp = (float)glfwGetTime();
 		glUniform1i(glGetUniformLocation(shaderProgramId, "iFrame"), ++framestamp);
 
-		if (track_mouse) {
+		if (track_mouse && animation_enabled) {
 			if (!GetCursorPos(&track_mouse_location))
 				track_mouse_location = { 0, 0 };
 
@@ -501,10 +506,16 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					break;
 
 				case ID_SYSTRAYMENU_RELOADSHADER: {
-					GLint temp = shaderProgramId;
-					shaderProgramId = -1;
 					glDeleteProgram(shaderProgramId);
 					shaderProgramId = LoadShaders("vertex_shader.glsl", "fragment_shader.glsl");
+
+					if (!animation_enabled) {
+						// Call repaint twice because shader does notapply on first call
+						// XXX: Attempt to fix
+						renderSC();
+						renderSC();
+					}
+					
 					break;
 				}
 
