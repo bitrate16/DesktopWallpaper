@@ -271,6 +271,7 @@ void initSC() {
 
 	glfwSetTime(0.0);
 	timestamp = 0.0;
+	framestamp = 0;
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -318,7 +319,10 @@ void renderSC() {
 		glUniform1f(glGetUniformLocation(shaderProgramId, "iTime"), (float)glfwGetTime());
 		glUniform1f(glGetUniformLocation(shaderProgramId, "iTimeDelta"), (float)(glfwGetTime() - timestamp));
 		timestamp = (float)glfwGetTime();
-		glUniform1i(glGetUniformLocation(shaderProgramId, "iFrame"), ++framestamp);
+		glUniform1i(glGetUniformLocation(shaderProgramId, "iFrame"), framestamp);
+
+		if (!animation_enabled)
+			++framestamp;
 
 		if (track_mouse && animation_enabled) {
 			if (!GetCursorPos(&track_mouse_location))
@@ -553,6 +557,7 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						animation_pause_timestamp = 0.0;
 					else
 						glfwSetTime(0.0);
+					framestamp = 0;
 
 					// Call repaint
 					renderSC();
