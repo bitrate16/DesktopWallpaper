@@ -15,6 +15,7 @@ out vec4 fragColor;
 #define PI4 0.78539816339
 
 // #define FAST
+#define ROTATION
 #define SCALE 6.0
 
 // SQRT
@@ -86,9 +87,9 @@ vec4 color(float dist) {
     return c;
 }
 
-void main() {
+void main() {   
 	vec2 fragCoord = fragCoord_;
-    
+ 
     fragCoord.xy = SCALE * fragCoord.xy + vec2(iTime * 500., iTime * 1000.);
     vec2 quarantOffset = round((fragCoord.xy - 0.5 * iResolution.xy) / iResolution.xy);
     
@@ -101,11 +102,23 @@ void main() {
     uv *= 1.5;
     uv.y -= 0.017;
     
+    bool qX = (int(quarantOffset.x) & 1) == 0;
+    bool qY = (int(quarantOffset.y) & 1) == 0;
+    
     // Invert coords
-    if ((int(quarantOffset.x) & 1) == 0)
+    if (qX) 
         uv.y = -uv.y;
-    if ((int(quarantOffset.y) & 1) == 0)
+    
+    if (qY) 
         uv.x = -uv.x;
+
+#ifdef ROTATION
+    // Rotation
+    float s = cos((qX && qY ? 1.0 : -1.0) * mod(iTime, PI) * 4.);
+    float c = sin((qX && qY ? 1.0 : -1.0) * mod(iTime, PI) * 4.);
+    mat2 m = mat2(c, -s, s, c);
+    uv = m * uv;
+#endif
 
 #ifdef FAST
     float d0 = segment_check(uv, vec2(-0.1, 0.2), vec2(0.1,  0.0), 10.0);
