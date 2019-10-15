@@ -27,3 +27,7 @@ _With_
 ```
 void main()
 ```
+
+_Running examples_
+------------------
+To start an example from __shaders__ folder - simply copy __fragment_shader.glsl__ to program root directory and do __reload shader__
