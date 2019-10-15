@@ -37,6 +37,9 @@
   <ItemGroup>
     <ResourceCompile Include="DesktopWallpaper.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="settings.manifest" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{E38384A8-5B0B-49D1-AA7C-30C1AD30F6BB}</ProjectGuid>
@@ -154,6 +157,9 @@
       <AdditionalLibraryDirectories>./lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>freeglut.lib;glew32.lib;glfw3.lib;OpenGL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>settings.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
