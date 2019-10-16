@@ -51,6 +51,7 @@ BEGIN
         MENUITEM "Reset time",                  ID_SYSTRAYMENU_RESETTIME
         MENUITEM "Mouse",                       ID_SYSTRAYMENU_MOUSE
         MENUITEM "Show warnings",               ID_SYSTRAYMENU_SHOWWARNINGS
+        MENUITEM "Rescan monitors",             ID_SYSTRAYMENU_RESCANMONITORS
     END
 END
 
