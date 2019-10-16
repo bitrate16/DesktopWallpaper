@@ -61,6 +61,8 @@ unsigned current_monitor_id = 0;
 bool animation_enabled = 1;
 double animation_pause_timestamp = 0.0;
 
+std::ofstream log_file;
+
 // Hold mouse location
 bool  track_mouse = 1;
 POINT track_mouse_location = { 0, 0 };
@@ -304,6 +306,10 @@ void resizeSC(int width, int height) {
 
 	gl_width = width;
 	gl_height = height;
+
+	log_file << "RESIZE> [" << width << ", " << height << "]" << std::endl;
+	// log_file << std::endl;
+	// log_file.flush();
 }
 
 // Callback for rendering a surface
@@ -354,6 +360,24 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMoni
 		monitors.push_back(info.rcMonitor);
 
 	return TRUE;
+}
+
+std::string GetLastErrorAsString() {
+	//Get the error message, if any.
+	DWORD errorMessageID = ::GetLastError();
+	if (errorMessageID == 0)
+		return std::string(); //No error message has been recorded
+
+	LPSTR messageBuffer = nullptr;
+	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+	std::string message(messageBuffer, size);
+
+	//Free the buffer.
+	LocalFree(messageBuffer);
+
+	return message;
 }
 
 // Tray event dispatcher
@@ -453,38 +477,90 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					break;
 
 				case ID_SYSTRAYMENU_MOVETOPREVMONITOR: {
+					monitors.clear();
 					EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
+
+					log_file << ">> ID_SYSTRAYMENU_MOVETOPREVMONITOR <<" << std::endl;
+					log_file << "ERR> [EnumDisplayMonitors] Error: " << GetLastErrorAsString() << std::endl;
 
 					if (current_monitor_id > 0)
 						--current_monitor_id;
 
 					if (current_monitor_id < 0)
-						current_monitor_id = 0;
-					RECT windowsize = monitors[current_monitor_id];
-
-					if (!animation_enabled)
-						glfwSetTime(animation_pause_timestamp);
-
-					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
-					corrent_monitor_rect = windowsize;
-					break;
-				}
-
-				case ID_SYSTRAYMENU_MOVETONEXTMONITOR: {
-					EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
-
-					if (current_monitor_id < monitors.size() - 1)
-						++current_monitor_id;
-
-					if (current_monitor_id >= monitors.size())
 						current_monitor_id = monitors.size() - 1;
 					RECT windowsize = monitors[current_monitor_id];
 
 					if (!animation_enabled)
 						glfwSetTime(animation_pause_timestamp);
 
-					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
+					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right - windowsize.left, windowsize.bottom - windowsize.top, TRUE);
 					corrent_monitor_rect = windowsize;
+
+					log_file << "> [windowsize] value: [" << windowsize.left << ", " << windowsize.top << ", " << windowsize.right << ", " << windowsize.bottom << "]" << std::endl;
+					log_file << "ERR> [MoveWindow] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> Number monitors detected: " << monitors.size() << std::endl;
+					for (int i = 0; i < monitors.size(); ++i)
+						log_file << ">  Monitor " << i << "[" << monitors[i].left << ", " << monitors[i].top << ", " << monitors[i].right << ", " << monitors[i].bottom << "]" << std::endl;
+					log_file << "> Selected monitor: " << current_monitor_id << " [" << monitors[current_monitor_id].left << ", " << monitors[current_monitor_id].top << ", " << monitors[current_monitor_id].right << ", " << monitors[current_monitor_id].bottom << "]" << std::endl;
+					log_file << "> [windowsize] value: [" << windowsize.left << ", " << windowsize.top << ", " << windowsize.right << ", " << windowsize.bottom << "]" << std::endl;
+					RECT currentWindowSize;
+					GetWindowRect(gl_window, &currentWindowSize);
+					log_file << "ERR> [GetWindowRect] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> [GetWindowRect] value: [" << currentWindowSize.left << ", " << currentWindowSize.top << ", " << currentWindowSize.right << ", " << currentWindowSize.bottom << "]" << std::endl;
+					WINDOWINFO pwinfo;
+					pwinfo.cbSize = sizeof(WINDOWINFO);
+					GetWindowInfo(gl_window, &pwinfo);
+					log_file << "ERR> [GetWindowInfo] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> [GetWindowInfo.rcWindow] value: [" << pwinfo.rcWindow.left << ", " << pwinfo.rcWindow.top << ", " << pwinfo.rcWindow.right << ", " << pwinfo.rcWindow.bottom << "]" << std::endl;
+					log_file << "> [GetWindowInfo.rcClient] value: [" << pwinfo.rcClient.left << ", " << pwinfo.rcClient.top << ", " << pwinfo.rcClient.right << ", " << pwinfo.rcClient.bottom << "]" << std::endl;
+					log_file << std::endl;
+					log_file.flush();
+
+					break;
+				}
+
+				case ID_SYSTRAYMENU_MOVETONEXTMONITOR: {
+					monitors.clear();
+					EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
+
+					log_file << ">> ID_SYSTRAYMENU_MOVETONEXTMONITOR <<" << std::endl;
+					log_file << "ERR> [EnumDisplayMonitors] Error: " << GetLastErrorAsString() << std::endl;
+
+					if (current_monitor_id < monitors.size() - 1)
+						++current_monitor_id;
+
+					if (current_monitor_id >= monitors.size())
+						current_monitor_id = 0;
+					RECT windowsize = monitors[current_monitor_id];
+
+					log_file << "";
+
+					if (!animation_enabled)
+						glfwSetTime(animation_pause_timestamp);
+
+					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right - windowsize.left, windowsize.bottom - windowsize.top, TRUE);
+					corrent_monitor_rect = windowsize;
+					
+					log_file << "> [windowsize] value: [" << windowsize.left << ", " << windowsize.top << ", " << windowsize.right << ", " << windowsize.bottom << "]" << std::endl;
+					log_file << "ERR> [MoveWindow] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> Number monitors detected: " << monitors.size() << std::endl;
+					for (int i = 0; i < monitors.size(); ++i)
+						log_file << ">  Monitor " << i << "[" << monitors[i].left << ", " << monitors[i].top << ", " << monitors[i].right << ", " << monitors[i].bottom << "]" << std::endl;
+					log_file << "> Selected monitor: " << current_monitor_id << " [" << monitors[current_monitor_id].left << ", " << monitors[current_monitor_id].top << ", " << monitors[current_monitor_id].right << ", " << monitors[current_monitor_id].bottom << "]" << std::endl;
+					log_file << "> [windowsize] value: [" << windowsize.left << ", " << windowsize.top << ", " << windowsize.right << ", " << windowsize.bottom << "]" << std::endl;
+					RECT currentWindowSize;
+					GetWindowRect(gl_window, &currentWindowSize);
+					log_file << "ERR> [GetWindowRect] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> [GetWindowRect] value: [" << currentWindowSize.left << ", " << currentWindowSize.top << ", " << currentWindowSize.right << ", " << currentWindowSize.bottom << "]" << std::endl;
+					WINDOWINFO pwinfo;
+					pwinfo.cbSize = sizeof(WINDOWINFO);
+					GetWindowInfo(gl_window, &pwinfo);
+					log_file << "ERR> [GetWindowInfo] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> [GetWindowInfo.rcWindow] value: [" << pwinfo.rcWindow.left << ", " << pwinfo.rcWindow.top << ", " << pwinfo.rcWindow.right << ", " << pwinfo.rcWindow.bottom << "]" << std::endl;
+					log_file << "> [GetWindowInfo.rcClient] value: [" << pwinfo.rcClient.left << ", " << pwinfo.rcClient.top << ", " << pwinfo.rcClient.right << ", " << pwinfo.rcClient.bottom << "]" << std::endl;
+					log_file << std::endl;
+					log_file.flush();
+
 					break;
 				}
 
@@ -492,11 +568,31 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					RECT windowsize;
 					GetWindowRect(workerw, &windowsize);
 
+					log_file << ">> ID_SYSTRAYMENU_FULLSCREEN <<" << std::endl;
+					log_file << "ERR> [EnumDisplayMonitors] Error: " << GetLastErrorAsString() << std::endl;
+
 					if (!animation_enabled)
 						glfwSetTime(animation_pause_timestamp);
 
-					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right, windowsize.bottom, TRUE);
+					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right - windowsize.left, windowsize.bottom - windowsize.top, TRUE);
 					corrent_monitor_rect = windowsize;
+					
+					log_file << "> [windowsize] value: [" << windowsize.left << ", " << windowsize.top << ", " << windowsize.right << ", " << windowsize.bottom << "]" << std::endl;
+					log_file << "ERR> [MoveWindow] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> [windowsize] value: [" << windowsize.left << ", " << windowsize.top << ", " << windowsize.right << ", " << windowsize.bottom << "]" << std::endl;
+					RECT currentWindowSize;
+					GetWindowRect(gl_window, &currentWindowSize);
+					log_file << "ERR> [GetWindowRect] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> [GetWindowRect(workerw)] value: [" << currentWindowSize.left << ", " << currentWindowSize.top << ", " << currentWindowSize.right << ", " << currentWindowSize.bottom << "]" << std::endl;
+					WINDOWINFO pwinfo;
+					pwinfo.cbSize = sizeof(WINDOWINFO);
+					GetWindowInfo(gl_window, &pwinfo);
+					log_file << "ERR> [GetWindowInfo] Error: " << GetLastErrorAsString() << std::endl;
+					log_file << "> [GetWindowInfo.rcWindow] value: [" << pwinfo.rcWindow.left << ", " << pwinfo.rcWindow.top << ", " << pwinfo.rcWindow.right << ", " << pwinfo.rcWindow.bottom << "]" << std::endl;
+					log_file << "> [GetWindowInfo.rcClient] value: [" << pwinfo.rcClient.left << ", " << pwinfo.rcClient.top << ", " << pwinfo.rcClient.right << ", " << pwinfo.rcClient.bottom << "]" << std::endl;
+					log_file << std::endl;
+					log_file.flush();
+
 					break;
 				}
 
@@ -852,6 +948,9 @@ int WINAPI __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, in
 	FILE* _freo = freopen("CONOUT$", "w+", stdout);
 #endif
 
+	// Log file
+	log_file.open("log.txt");
+
 	// Output unicode text
 	int _sm = _setmode(_fileno(stdout), _O_U16TEXT);
 
@@ -954,6 +1053,8 @@ quit:
 	DestroyWindow(gl_window);
 	if (hPalette)
 		DeleteObject(hPalette);
+
+	log_file.close();
 
 	return msg.wParam;
 };
