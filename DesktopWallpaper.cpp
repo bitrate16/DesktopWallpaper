@@ -459,7 +459,11 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #ifdef USE_MONITOR_SCROLL
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETONEXTMONITOR, _T("Move to next monitor"));
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_MOVETOPREVMONITOR, _T("Move to prev monitor"));
-					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_FULLSCREEN, _T("Fullscreen"));
+
+					if (is_fullscreen_monitor)
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_FULLSCREEN, _T("Singlescreen"));
+					else
+						InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, ID_SYSTRAYMENU_FULLSCREEN, _T("Fullscreen"));
 
 					InsertMenu(trayPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP")); // SEP
 #endif
@@ -579,18 +583,36 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				}
 
 				case ID_SYSTRAYMENU_FULLSCREEN: {
-					is_fullscreen_monitor = 1;
+					if (!is_fullscreen_monitor) {
+						is_fullscreen_monitor = 1;
 
-					enumerateMonitors();
-					RECT windowsize = fullcreenMonitor;
+						enumerateMonitors();
+						RECT windowsize = fullcreenMonitor;
 
-					if (!animation_enabled)
-						glfwSetTime(animation_pause_timestamp);
+						if (!animation_enabled)
+							glfwSetTime(animation_pause_timestamp);
 
-					MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right - windowsize.left, windowsize.bottom - windowsize.top, TRUE);
-					corrent_monitor_rect = windowsize;
-					
-					break;
+						MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right - windowsize.left, windowsize.bottom - windowsize.top, TRUE);
+						corrent_monitor_rect = windowsize;
+
+						break;
+					} else {
+						is_fullscreen_monitor = 0;
+
+						enumerateMonitors();
+
+						if (current_monitor_id >= monitors.size())
+							current_monitor_id = monitors.size() - 1;
+						RECT windowsize = monitors[current_monitor_id];
+
+						if (!animation_enabled)
+							glfwSetTime(animation_pause_timestamp);
+
+						MoveWindow(gl_window, windowsize.left, windowsize.top, windowsize.right - windowsize.left, windowsize.bottom - windowsize.top, TRUE);
+						corrent_monitor_rect = windowsize;
+
+						break;
+					}
 				}
 
 				case ID_SYSTRAYMENU_ANIMATED:
