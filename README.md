@@ -6,6 +6,11 @@ Build/x86 - ready application
 Can run any shader from [shadertoy.com](https://shadertoy.com)
 ------------------------------------
 
+
+[Download release](https://github.com/bitrate16/DesktopWallpaper/releases)
+--------------------------------------------------------------------------
+
+
 _Code should be inserted into shader beginning_
 ```
 #version 330 core
