@@ -28,8 +28,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="fragment_shader.glsl" />
-    <None Include="vertex_shader.glsl" />
+    <None Include="shader.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="DesktopWallpaper.ico">

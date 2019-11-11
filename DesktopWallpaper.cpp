@@ -124,38 +124,18 @@ float timestamp = 0.0;
 int framestamp  = 0;
 
 // Read shader from file & compile
-GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path) {
+GLuint LoadShaders(const char* fragment_file_path) {
 
 	// Creating shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
 	// Loading vertex shader from file
-	std::string VertexShaderCode;
-	std::ifstream VertexShaderStream(vertex_file_path, std::ios::in);
-	if (VertexShaderStream.is_open()) {
-		std::stringstream sstr;
-		sstr << VertexShaderStream.rdbuf();
-		VertexShaderCode = sstr.str();
-		VertexShaderStream.close();
-	} else {
-		std::wcout.clear();
-		AllocConsole();
-		SetConsoleTitle(L"GLSL Error output");
-		SetConsoleCtrlHandler(NULL, TRUE);
-		FILE* _frp = freopen("CONOUT$", "w", stdout);
-		
-		std::wcout << vertex_file_path << " open failed" << std::endl;
-		
-		system("PAUSE");
-		ShowWindow(GetConsoleWindow(), SW_HIDE);
-		FreeConsole();
-
-		if (_frp)
-			fclose(_frp);
-
-		return -1;
-	}
+	std::string VertexShaderCode =	"#version 330 core\n"
+									"layout(location = 0) in vec3 position;\n"
+									"void main() {\n"
+									"	gl_Position = vec4(position, 1.0);\n"
+									"}";
 
 	// Loading fragment shader from file
 	std::string FragmentShaderCode;
@@ -188,7 +168,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	int InfoLogLength;
 
 	// Compiling vertex shader
-	std::wcout << "Compiling shader: " << vertex_file_path << std::endl;
+	std::wcout << "Compiling vertex shader" << std::endl;
 	char const* VertexSourcePointer = VertexShaderCode.c_str();
 	glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
 	glCompileShader(VertexShaderID);
@@ -293,7 +273,7 @@ void initSC() {
 	glViewport(0, 0, gl_width, gl_height);
 	glClearColor(0, 0, 0, 0);
 
-	shaderProgramId = LoadShaders("vertex_shader.glsl", "fragment_shader.glsl");
+	shaderProgramId = LoadShaders("shader.glsl");
 
 	glfwSetTime(0.0);
 	timestamp = 0.0;
@@ -626,7 +606,7 @@ LONG WINAPI trayWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 				case ID_SYSTRAYMENU_RELOADSHADER: {
 					glDeleteProgram(shaderProgramId);
-					shaderProgramId = LoadShaders("vertex_shader.glsl", "fragment_shader.glsl");
+					shaderProgramId = LoadShaders("shader.glsl");
 
 					if (!animation_enabled) {
 						// Call repaint twice because shader does notapply on first call
