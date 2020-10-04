@@ -16,13 +16,6 @@ vec4 bufA[N_HIDDEN/4];
 vec4 bufB[N_HIDDEN/2];
 
 
-
-#define N_HIDDEN 12
-
-vec4 bufA[N_HIDDEN/4];
-vec4 bufB[N_HIDDEN/2];
-
-
 vec4 cppn_fn(vec2 coordinate, float in0, float in1, float in2, float in3) {
     vec4 tmp;
     bufB[0] = vec4(coordinate.x, coordinate.y, 0., 0.);
