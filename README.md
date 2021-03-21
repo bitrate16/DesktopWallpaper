@@ -35,4 +35,4 @@ void main()
 
 _Running examples_
 ------------------
-To start an example from __shaders__ folder - simply copy __fragment_shader.glsl__ to program root directory and do __Reload shader__
+To start an example (Taken from shadertoy with successfully forgotten authors' tags)  from __shaders__ folder - simply copy __fragment_shader.glsl__ to program root directory and do __Reload shader__
